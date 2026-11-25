@@ -18,6 +18,9 @@ function forceStep(world, order, ingredient, station, jobT) {
       if (jobT >= job.duration) {
         job.done = true;
         job.dinged = true;
+        job.doneAt = world.state.elapsed;
+        job.cleanCuts = 3;
+        job.stirred = true;
       }
     }
   }

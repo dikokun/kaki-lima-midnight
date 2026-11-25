@@ -15,14 +15,21 @@ night shift, then come back tomorrow to a harder night and a bigger menu.
   chicken, shrimp, tofu, cabbage, chili, garlic, tomato, satay, dough).
   Click a bin or press its key (1–0, Q, W) to send the next needed
   ingredient to its station. The glowing bin is always the next step.
-- **Stations** — chop on the prep board (click the board to chop faster),
-  fry in the wok (lift it inside the green doneness window or serve it
-  undercooked, over or burnt), boil in the pot (steady, with a grace
-  window), and plate the finisher onto the assembly plate, where the dish
-  visibly builds up ingredient by ingredient.
-- **The pass** — a finished plate waits at the pass, ready to serve. Click
-  it (or press Space) to collect its price plus a tip scaled by patience
-  left and cooking quality. Good, fast plates build a combo streak.
+- **Stations are skill actions, and every step is graded** (PERFECT / GOOD /
+  OK / MISS — a missed step never ends the run, it just drags the dish's
+  grade, tip and stars down):
+  chop on the prep board (click on the knife's up-swing: 3 clean cuts finish
+  the board), fry in the wok (lift it inside the green doneness window or
+  serve it undercooked, over or burnt), boil in the pot (click to stir while
+  the bubble marker crosses the green zone), and plate the finisher onto
+  the assembly plate, where the dish visibly builds up ingredient by
+  ingredient, one grade dot per finished step. The ingredient being worked
+  is shown big at its station, and every ticket and the assembly board show
+  the current Step n/N.
+- **The pass** — a finished plate waits at the pass with its dish star
+  rating (1–3 stars from its step grades), ready to serve. Click it (or
+  press Space) to collect its price plus a tip scaled by patience left and
+  cooking quality. Good, fast plates build a combo streak.
 - Expired tickets walk away and cost 5 coins. At last orders you get the
   night's summary — served, missed, earnings and a 0–3 star stall rating —
   and the next night is faster, less patient, and unlocks new dishes.

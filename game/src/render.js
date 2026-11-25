@@ -294,16 +294,24 @@ export function createRenderer(canvas) {
     ctx.strokeStyle = '#7a4a2b'; ctx.lineWidth = 2; ctx.stroke();
     const chopJob = state.jobs.chop;
     if (chopJob) {
-      drawIngredientIcon(ctx, chopJob.ingredient, LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 112, 62);
+      ctx.fillStyle = 'rgba(255,211,110,0.14)';
+      ctx.beginPath(); ctx.arc(LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 116, 56, 0, 7); ctx.fill();
+      drawIngredientIcon(ctx, chopJob.ingredient, LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 116, 88);
       const lift = chopJob.done ? 0 : Math.abs(Math.sin(now * 9)) * 10;
       ctx.save();
-      ctx.translate(LAYOUT.prep.x + LAYOUT.prep.w / 2 + 40, y + 74 - lift);
+      ctx.translate(LAYOUT.prep.x + LAYOUT.prep.w / 2 + 52, y + 74 - lift);
       ctx.rotate(0.5);
       ctx.fillStyle = '#cfd6dd'; ctx.fillRect(-4, 0, 8, 42);
       ctx.fillStyle = '#5a3a22'; ctx.fillRect(-3.4, -16, 6.8, 17);
       ctx.restore();
-      progressBar(LAYOUT.prep.x + 18, y + 192, LAYOUT.prep.w - 36, chopJob.t / chopJob.duration, PALETTE.good);
-      text(ctx, chopJob.done ? 'DONE — CLICK TO PLATE IT' : 'CLICK BOARD TO CHOP FASTER!', LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 224, 13.5, chopJob.done ? PALETTE.good : PALETTE.text, 'center', 800);
+      // Clean-cut pips: three on-rhythm clicks finish the board.
+      for (let pip = 0; pip < 3; pip += 1) {
+        ctx.fillStyle = pip < chopJob.cleanCuts ? PALETTE.good : '#17101f';
+        ctx.beginPath(); ctx.arc(LAYOUT.prep.x + LAYOUT.prep.w / 2 - 22 + pip * 22, y + 190, 8, 0, 7); ctx.fill();
+        ctx.strokeStyle = PALETTE.good; ctx.lineWidth = 1.6; ctx.stroke();
+      }
+      const upSwing = Math.sin(chopJob.t * 10) > 0;
+      text(ctx, chopJob.done ? 'DONE — CLICK TO PLATE IT' : upSwing ? 'NOW! CLICK FOR A CLEAN CUT' : 'click on the up-swing…', LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 224, 13.5, chopJob.done || upSwing ? PALETTE.good : PALETTE.text, 'center', 800);
     } else {
       text(ctx, 'Send an ingredient here', LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 104, 15, PALETTE.dim, 'center', 700);
       text(ctx, 'to chop it', LAYOUT.prep.x + LAYOUT.prep.w / 2, y + 126, 15, PALETTE.dim, 'center', 700);
@@ -323,7 +331,9 @@ export function createRenderer(canvas) {
       ctx.beginPath(); ctx.moveTo(wokCx + off - 5.5, y + 168); ctx.quadraticCurveTo(wokCx + off, y + 168 - flameH * 0.55, wokCx + off + 5.5, y + 168); ctx.closePath(); ctx.fill();
     }
     if (fryJob) {
-      drawIngredientIcon(ctx, fryJob.ingredient, wokCx, y + 116, 56);
+      ctx.fillStyle = 'rgba(255,154,92,0.16)';
+      ctx.beginPath(); ctx.arc(wokCx, y + 114, 52, 0, 7); ctx.fill();
+      drawIngredientIcon(ctx, fryJob.ingredient, wokCx, y + 114, 78);
       // Doneness meter with a green perfect window.
       const mx = LAYOUT.wok.x + 18; const mw = LAYOUT.wok.w - 36;
       ctx.fillStyle = '#17101f'; roundRect(ctx, mx, y + 190, mw, 15, 7.5); ctx.fill();
@@ -345,17 +355,27 @@ export function createRenderer(canvas) {
     ctx.fillStyle = '#7fb069'; ctx.beginPath(); ctx.ellipse(potCx, y + 82, 56, 10, 0, 0, 7); ctx.fill();
     const boilJob = state.jobs.boil;
     if (boilJob) {
-      drawIngredientIcon(ctx, boilJob.ingredient, potCx, y + 118, 46);
+      drawIngredientIcon(ctx, boilJob.ingredient, potCx, y + 118, 64);
       for (let i = 0; i < 3; i += 1) {
         const sx = potCx - 26 + i * 26 + Math.sin(now * 3 + i * 2) * 4;
         const sy = y + 58 - ((now * 22 + i * 17) % 26);
         ctx.fillStyle = 'rgba(240,248,255,0.5)';
         ctx.beginPath(); ctx.arc(sx, sy, 5.5 - ((now * 22 + i * 17) % 26) * 0.12, 0, 7); ctx.fill();
       }
-      progressBar(LAYOUT.pot.x + 16, y + 192, LAYOUT.pot.w - 32, boilJob.t / boilJob.duration, PALETTE.teal);
-      text(ctx, boilJob.done ? 'BOILED — CLICK TO PLATE IT' : 'BOILING…', potCx, y + 224, 13.5, boilJob.done ? PALETTE.good : PALETTE.text, 'center', 800);
+      progressBar(LAYOUT.pot.x + 16, y + 184, LAYOUT.pot.w - 32, boilJob.t / boilJob.duration, PALETTE.teal);
+      // Stir gauge: click the pot while the bubble marker crosses the green.
+      if (!boilJob.done) {
+        const gx = LAYOUT.pot.x + 16; const gw = LAYOUT.pot.w - 32;
+        ctx.fillStyle = '#17101f'; roundRect(ctx, gx, y + 203, gw, 11, 5.5); ctx.fill();
+        ctx.fillStyle = 'rgba(125,208,105,0.9)';
+        roundRect(ctx, gx + gw * 0.35, y + 203, gw * 0.3, 11, 5); ctx.fill();
+        const marker = 0.5 + 0.5 * Math.sin(boilJob.t * 2.4);
+        ctx.fillStyle = '#fff7e0';
+        ctx.fillRect(gx + marker * gw - 2.5, y + 200, 5, 17);
+      }
+      text(ctx, boilJob.done ? 'BOILED — CLICK TO PLATE IT' : boilJob.stirred ? 'STIRRED ✓ PERFECT BREWING' : 'CLICK TO STIR IN THE GREEN!', potCx, y + 232, 12.5, boilJob.done || boilJob.stirred ? PALETTE.good : PALETTE.text, 'center', 800);
     } else {
-      text(ctx, 'Steady and hands-off', potCx, y + 224, 13.5, PALETTE.dim, 'center', 700);
+      text(ctx, 'Stir in the green zone', potCx, y + 224, 13.5, PALETTE.dim, 'center', 700);
     }
     // ASSEMBLY.
     stationBox(LAYOUT.assembly, '🍽 ASSEMBLY · THE PLATE', '#ffb347');
@@ -365,7 +385,16 @@ export function createRenderer(canvas) {
       const stepDef = active.dish.steps[Math.min(active.stepIndex, active.dish.steps.length - 1)];
       text(ctx, `BUILDING: ${active.dish.name}`, LAYOUT.assembly.x + LAYOUT.assembly.w / 2, y + 168, 15.5, PALETTE.text, 'center', 900);
       text(ctx, `next: ${INGREDIENT_BY_ID[stepDef.ingredient].name} → ${STATIONS[stepDef.station].label}`, LAYOUT.assembly.x + LAYOUT.assembly.w / 2, y + 192, 15, PALETTE.amber, 'center', 800);
-      text(ctx, `${active.stepIndex} of ${active.dish.steps.length} steps on the plate`, LAYOUT.assembly.x + LAYOUT.assembly.w / 2, y + 216, 13.5, PALETTE.dim, 'center', 700);
+      text(ctx, `STEP ${Math.min(active.stepIndex + 1, active.dish.steps.length)}/${active.dish.steps.length} · ${active.stepIndex} on the plate`, LAYOUT.assembly.x + LAYOUT.assembly.w / 2, y + 212, 13.5, PALETTE.dim, 'center', 700);
+      // One grade dot per finished step: green Perfect, gold Good, amber OK, red Miss.
+      active.qualities.forEach((quality, index) => {
+        const gx = LAYOUT.assembly.x + LAYOUT.assembly.w / 2 + (index - (active.qualities.length - 1) / 2) * 24;
+        ctx.fillStyle = quality >= 0.95 ? PALETTE.good : quality >= 0.78 ? '#ffd873' : quality >= 0.55 ? PALETTE.warn : PALETTE.bad;
+        ctx.beginPath(); ctx.arc(gx, y + 234, 7.5, 0, 7); ctx.fill();
+        ctx.fillStyle = '#17101f';
+        ctx.font = `900 10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(quality >= 0.95 ? 'P' : quality >= 0.78 ? 'G' : quality >= 0.55 ? 'O' : 'M', gx, y + 234.5);
+      });
     } else if (active && active.ready) {
       drawPlate(ctx, LAYOUT.assembly.x + LAYOUT.assembly.w / 2, LAYOUT.stations.y + 104, 74, active, 1);
       text(ctx, 'THAT PLATE IS AT THE PASS →', LAYOUT.assembly.x + LAYOUT.assembly.w / 2, y + 192, 16, PALETTE.good, 'center', 900);
@@ -380,6 +409,9 @@ export function createRenderer(canvas) {
       readyOrders.slice(0, 2).forEach((order, index) => {
         const px = LAYOUT.pass.x + LAYOUT.pass.w / 2;
         const py = y + 84 + index * 74;
+        const avg = order.qualities.length ? order.qualities.reduce((a, b) => a + b, 0) / order.qualities.length : 1;
+        const stars = avg >= 0.9 ? 3 : avg >= 0.68 ? 2 : avg >= 0.4 ? 1 : 0;
+        if (stars > 0) text(ctx, '★'.repeat(stars), px, py - 32, 15, '#ffd873', 'center', 900);
         drawPlate(ctx, px, py, 52, order, 1);
         text(ctx, order.dish.name, px, py + 30, 13, PALETTE.text, 'center', 900);
         text(ctx, `CLICK TO SERVE · ${order.dish.price}c`, px, py + 48, 12.5, PALETTE.good, 'center', 900);
@@ -421,7 +453,8 @@ export function createRenderer(canvas) {
     const message = state.messageTimer > 0 ? state.message : 'Click ticket → click the glowing ingredient → work its station → serve at the pass.  Keys 1-0 Q W pick · SPACE serve · P pause · M mute';
     text(ctx, message, 640, LAYOUT.strip.y + 24, 15.5, state.messageTimer > 0 ? PALETTE.amber : PALETTE.dim, 'center', 700);
     if (state.lastServe && state.elapsed - state.lastServe.at < 3) {
-      text(ctx, `+${state.lastServe.earned}c  ${state.lastServe.name} served!`, 1210, LAYOUT.strip.y + 24, 15, PALETTE.good, 'right', 900);
+      const starsText = state.lastServe.stars ? ` ${'★'.repeat(state.lastServe.stars)}` : '';
+      text(ctx, `${state.lastServe.grade}! +${state.lastServe.earned}c ${state.lastServe.name}${starsText}`, 1210, LAYOUT.strip.y + 24, 15, PALETTE.good, 'right', 900);
     }
   }
 

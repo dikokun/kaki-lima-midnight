@@ -129,6 +129,10 @@ export function createWorld(random) {
       duration,
       done: false,
       dinged: false,
+      doneAt: null,
+      cleanCuts: 0,
+      dullCuts: 0,
+      stirred: false,
     };
     return { ok: true, station, order };
   }
@@ -141,29 +145,63 @@ export function createWorld(random) {
     return false;
   }
 
+  // Every step earns its own grade, Cooking-Mama style: a missed step never
+  // ends the run, it just drags the dish's quality, tip and star rating down.
   function qualityForCollection(job) {
     const ratio = job.t / job.duration;
+    let base;
     if (job.station === 'fry') {
-      if (ratio < COOK.fryPerfectFrom) return SCORE.okQuality;
-      if (ratio <= COOK.fryPerfectTo) return SCORE.perfectQuality;
-      if (ratio < COOK.fryBurntAt) return SCORE.goodQuality;
-      return SCORE.poorQuality;
+      if (ratio < COOK.fryPerfectFrom) base = SCORE.okQuality;
+      else if (ratio <= COOK.fryPerfectTo) base = SCORE.perfectQuality;
+      else if (ratio < COOK.fryBurntAt) base = SCORE.goodQuality;
+      else base = SCORE.poorQuality;
+    } else if (job.station === 'boil') {
+      if (job.stirred) base = SCORE.perfectQuality;
+      else if (ratio <= 1 + COOK.boilGraceSeconds / job.duration) base = SCORE.goodQuality;
+      else base = SCORE.okQuality;
+    } else if (job.station === 'chop') {
+      if (job.cleanCuts >= 3) base = SCORE.perfectQuality;
+      else if (job.cleanCuts === 2) base = SCORE.goodQuality;
+      else if (job.cleanCuts === 1) base = SCORE.okQuality;
+      else base = SCORE.poorQuality;
+    } else {
+      base = SCORE.perfectQuality;
     }
-    if (job.station === 'boil') {
-      return ratio <= 1 + COOK.boilGraceSeconds / job.duration ? SCORE.perfectQuality : SCORE.goodQuality;
-    }
-    return SCORE.perfectQuality;
+    // A finished step left sitting on the station goes stale.
+    const late = job.doneAt === null ? 0 : Math.max(0, state.elapsed - job.doneAt);
+    const latePenalty = late > 3 ? 0.25 : late > 1.5 ? 0.1 : 0;
+    return Math.max(0.3, Math.min(1, base - latePenalty));
   }
 
-  // Clicking a station: chopping speeds the knife; a finished job is collected
-  // onto its order's plate; a wok job can be lifted early or late at a cost.
+  // Clicking a station is a skill action, never just a timer skip:
+  // - chop: click on the knife's up-swing for a clean cut; 3 clean cuts finish
+  //   the board at once, dull clicks still help but grade lower.
+  // - boil: click to stir while the bubble marker crosses the green zone;
+  //   a stirred pot grades Perfect, an unstirred one only Good.
+  // - fry: clicking lifts the ingredient out — timing against the doneness
+  //   window is the whole skill (see qualityForCollection).
+  // A finished job is collected onto its order's plate by the same click.
   function clickStation(station) {
     const job = state.jobs[station];
     if (!job) return { ok: false, reason: 'empty' };
     if (station === 'chop' && !job.done) {
-      job.t = Math.min(job.duration, job.t + COOK.chopClickBoost);
-      if (job.t >= job.duration) job.done = true;
-      return { ok: true, action: 'chop-boost', job };
+      const upSwing = Math.sin(job.t * 10) > 0;
+      if (upSwing) job.cleanCuts += 1;
+      else job.dullCuts += 1;
+      job.t = Math.min(job.duration, job.t + COOK.chopClickBoost * 0.65);
+      if (job.cleanCuts >= 3 || job.t >= job.duration) {
+        job.done = true;
+        job.doneAt = state.elapsed;
+      }
+      return { ok: true, action: upSwing ? 'chop-clean' : 'chop-dull', job };
+    }
+    if (station === 'boil' && !job.done) {
+      const marker = 0.5 + 0.5 * Math.sin(job.t * 2.4);
+      if (marker >= 0.35 && marker <= 0.65) {
+        job.stirred = true;
+        return { ok: true, action: 'stir', job };
+      }
+      return { ok: false, reason: 'stir-miss', job };
     }
     const collectable = job.done || station === 'fry';
     if (!collectable) return { ok: false, reason: 'not-ready', job };
@@ -200,13 +238,21 @@ export function createWorld(random) {
     } else {
       state.combo = 0;
     }
-    state.lastServe = { name: order.dish.name, earned, tip, quality, at: state.elapsed };
+    const dishStars = quality >= 0.9 ? 3 : quality >= 0.68 ? 2 : quality >= 0.4 ? 1 : 0;
+    state.lastServe = { name: order.dish.name, earned, tip, quality, stars: dishStars, grade: gradeOf(quality), at: state.elapsed };
     state.orders = state.orders.filter((entry) => entry.id !== order.id);
     if (state.activeOrderId === order.id) {
       const next = state.orders.find((entry) => !entry.ready) || state.orders[0];
       state.activeOrderId = next ? next.id : null;
     }
-    return { ok: true, earned, tip, quality, order };
+    return { ok: true, earned, tip, quality, stars: dishStars, grade: gradeOf(quality), order };
+  }
+
+  function gradeOf(quality) {
+    if (quality >= 0.95) return 'PERFECT';
+    if (quality >= 0.78) return 'GOOD';
+    if (quality >= 0.55) return 'OK';
+    return 'MISS';
   }
 
   function removeOrder(order) {
@@ -246,7 +292,10 @@ export function createWorld(random) {
           job.dinged = true;
           events |= EVENT_STEP_DONE;
         }
-        job.done = true;
+        if (!job.done) {
+          job.done = true;
+          job.doneAt = state.elapsed;
+        }
         if (job.t > cap) job.t = cap;
       }
     }
@@ -315,6 +364,7 @@ export function createWorld(random) {
     clickStation,
     serveOrder,
     averageQuality,
+    gradeOf,
     step,
     stars,
     nextDay,

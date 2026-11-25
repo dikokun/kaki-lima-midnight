@@ -113,18 +113,28 @@ if (testMode) {
     const result = world.clickStation(station);
     if (!result.ok) {
       if (result.reason === 'not-ready') world.say('Not yet — let it cook', 1.4);
+      else if (result.reason === 'stir-miss') world.say('Splash! Stir when the marker is in the green', 1.5);
       return;
     }
-    if (result.action === 'chop-boost') {
+    if (result.action === 'chop-clean' || result.action === 'chop-dull') {
       audio.chop();
+      if (result.job.done) world.say(result.job.cleanCuts >= 3 ? 'Clean cuts! Collect it onto the plate' : 'Chopped — collect it onto the plate', 1.6);
+      return;
+    }
+    if (result.action === 'stir') {
+      audio.pop();
+      world.say('Nice stir — that pot is on for a PERFECT', 1.6);
       return;
     }
     if (result.action === 'collect') {
       if (station === 'fry') audio.sizzleStop();
       audio.pop();
+      const grade = world.gradeOf(result.quality);
       if (result.becameReady) {
         audio.ding();
-        world.say(`${result.order.dish.name} is READY — serve it at the pass!`, 2.6);
+        world.say(`${grade} finish! ${result.order.dish.name} is READY — serve it at the pass!`, 2.8);
+      } else {
+        world.say(`${grade} — step plated for ${result.order.dish.name}`, 1.7);
       }
     }
   }
@@ -137,6 +147,7 @@ if (testMode) {
     if (result.ok) {
       audio.coin();
       audio.ding();
+      world.say(`${result.grade} DISH! ${result.order.dish.name} served ${'★'.repeat(result.stars)} +${result.earned} coins`, 3);
     }
   }
 
