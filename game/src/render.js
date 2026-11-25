@@ -183,7 +183,13 @@ export function createRenderer(canvas) {
     if (frac > 0.01) { roundRect(ctx, 356, 15, Math.max(24, 252 * frac), 24, 12); ctx.fill(); }
     text(ctx, `SHIFT ${mm}:${ss}`, 482, 27.5, 16.5, frac > 0.62 ? '#14101f' : PALETTE.text, 'center', 900);
     text(ctx, `COINS ${state.coins}`, 640, 27, 21, '#ffd873', 'left', 900);
-    text(ctx, `SCORE ${state.score}`, 806, 27, 19, PALETTE.text, 'left', 800);
+    // Shift target: tonight's earnings goal, filling as the till grows.
+    const targetFrac = Math.min(1, state.dayCoins / state.targetCoins);
+    text(ctx, `TARGET ${state.targetCoins}c`, 786, 13, 11.5, PALETTE.muted, 'left', 900);
+    ctx.fillStyle = '#3a2a4d'; roundRect(ctx, 786, 21, 148, 15, 7.5); ctx.fill();
+    ctx.fillStyle = targetFrac >= 1 ? PALETTE.good : PALETTE.amber;
+    if (targetFrac > 0.01) { roundRect(ctx, 786, 21, Math.max(15, 148 * targetFrac), 15, 7.5); ctx.fill(); }
+    text(ctx, `${state.dayCoins}/${state.targetCoins}c`, 860, 28.5, 12, '#14101f', 'center', 900);
     if (state.combo >= 2) {
       text(ctx, `COMBO x${state.combo} 🔥`, 986, 27, 19, PALETTE.flame, 'left', 900);
     } else {
@@ -209,10 +215,12 @@ export function createRenderer(canvas) {
     ctx.fillRect(x, y + 18, w, 9);
     text(ctx, order.dish.name.toUpperCase(), x + 10, y + 14, 14.5, '#fff7e0', 'left', 900);
     text(ctx, `${order.dish.price}c`, x + w - 10, y + 14, 15, '#fff7e0', 'right', 900);
+    text(ctx, `#${String(order.ticketNo).padStart(2, '0')} · ${order.persona.name}`, x + 10, y + 38, 12.5, PALETTE.ink, 'left', 900);
+    text(ctx, order.persona.trait, x + w - 10, y + 38, 10.5, '#8a7648', 'right', 700);
     if (order.ready) {
-      text(ctx, '★ READY TO SERVE ★', x + w / 2, y + 56, 21, '#3d7a27', 'center', 900);
-      text(ctx, 'click the plate at the PASS →', x + w / 2, y + 80, 14.5, PALETTE.ink, 'center', 700);
-      drawPlate(ctx, x + w / 2, y + 100, 23, order, 1);
+      text(ctx, '★ READY TO SERVE ★', x + w / 2, y + 66, 20, '#3d7a27', 'center', 900);
+      text(ctx, 'click the plate at the PASS →', x + w / 2, y + 88, 13.5, PALETTE.ink, 'center', 700);
+      drawPlate(ctx, x + w / 2, y + 104, 20, order, 1);
     } else {
       // Ingredient chips for every step; done steps are ticked and dimmed.
       const steps = order.dish.steps;
@@ -222,13 +230,13 @@ export function createRenderer(canvas) {
         const done = index < order.stepIndex;
         const current = index === order.stepIndex;
         ctx.fillStyle = done ? '#d8cfb2' : current ? '#ffe1a1' : '#efe3c2';
-        roundRect(ctx, cx0, y + 34, chipW, 40, 6); ctx.fill();
+        roundRect(ctx, cx0, y + 47, chipW, 34, 6); ctx.fill();
         if (current) { ctx.strokeStyle = PALETTE.flame; ctx.lineWidth = 2.4; ctx.stroke(); }
-        drawIngredientIcon(ctx, stepDef.ingredient, cx0 + chipW / 2, y + 50, 24);
-        text(ctx, STATIONS[stepDef.station].short, cx0 + chipW / 2, y + 68, 10.5, PALETTE.ink, 'center', 800);
-        if (done) text(ctx, '✓', cx0 + chipW - 8, y + 41, 13, '#3d7a27', 'center', 900);
+        drawIngredientIcon(ctx, stepDef.ingredient, cx0 + chipW / 2, y + 61, 21);
+        text(ctx, STATIONS[stepDef.station].short, cx0 + chipW / 2, y + 75, 10, PALETTE.ink, 'center', 800);
+        if (done) text(ctx, '✓', cx0 + chipW - 8, y + 54, 12, '#3d7a27', 'center', 900);
       });
-      text(ctx, `STEP ${Math.min(order.stepIndex + 1, steps.length)}/${steps.length} · ${INGREDIENT_BY_ID[steps[Math.min(order.stepIndex, steps.length - 1)].ingredient].name} → ${STATIONS[steps[Math.min(order.stepIndex, steps.length - 1)].station].short.toUpperCase()}`, x + 10, y + 88, 13.5, PALETTE.ink, 'left', 800);
+      text(ctx, `STEP ${Math.min(order.stepIndex + 1, steps.length)}/${steps.length} · ${INGREDIENT_BY_ID[steps[Math.min(order.stepIndex, steps.length - 1)].ingredient].name} → ${STATIONS[steps[Math.min(order.stepIndex, steps.length - 1)].station].short.toUpperCase()}`, x + 10, y + 95, 13, PALETTE.ink, 'left', 800);
       // Patience bar.
       const ratio = Math.max(0, order.patience / order.patienceMax);
       ctx.fillStyle = '#d8cfb2'; roundRect(ctx, x + 10, y + h - 13, w - 20, 7, 3.5); ctx.fill();
@@ -499,6 +507,9 @@ export function createRenderer(canvas) {
         '',
         `Served ${extras.summary.served} plates · Missed ${extras.summary.missed} orders`,
         `Earned ${extras.summary.dayCoins} coins tonight · Best combo x${extras.summary.bestCombo}`,
+        extras.summary.dayCoins >= extras.summary.targetCoins
+          ? `Target ${extras.summary.targetCoins}c: REACHED ✓ — the stall made its night`
+          : `Target ${extras.summary.targetCoins}c: missed by ${extras.summary.targetCoins - extras.summary.dayCoins}c — the stars feel it`,
         `Stall rating ${starsText}`,
         extras.summary.day >= 2 ? 'The menu grows: new dishes join the board.' : 'Tomorrow: Bihun Kuah, Sambal Rice and Sate join the menu.',
       ], `NIGHT ${extras.summary.day} — LAST ORDERS`, 'Click or press ENTER for the next night');

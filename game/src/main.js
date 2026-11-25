@@ -38,7 +38,7 @@ if (testMode) {
     renderer.draw(world.state, scene.screen, 2.4, {
       audioMuted: false,
       stars: world.stars ? 2 : 2,
-      summary: { served: world.state.served, missed: world.state.missed, dayCoins: world.state.dayCoins, bestCombo: world.state.bestCombo, day: world.state.day },
+      summary: { served: world.state.served, missed: world.state.missed, dayCoins: world.state.dayCoins, bestCombo: world.state.bestCombo, day: world.state.day, targetCoins: world.state.targetCoins },
       ...FLAVOR,
     });
     painted += 1;
@@ -62,6 +62,7 @@ if (testMode) {
         dayCoins: world.state.dayCoins,
         bestCombo: world.state.bestCombo,
         day: world.state.day,
+        targetCoins: world.state.targetCoins,
       },
       ...FLAVOR,
     };

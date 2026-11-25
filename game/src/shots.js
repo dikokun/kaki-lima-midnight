@@ -55,6 +55,7 @@ export function stageShot(name, world) {
     s.elapsed = 88;
     s.timeLeft = 62;
     s.coins = 86;
+    s.dayCoins = 86;
     s.score = 860;
     s.combo = 4;
     s.served = 6;
@@ -84,6 +85,7 @@ export function stageShot(name, world) {
   s.elapsed = 34;
   s.timeLeft = 116;
   s.coins = 37;
+  s.dayCoins = 37;
   s.score = 370;
   s.combo = 2;
   s.served = 3;

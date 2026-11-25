@@ -70,6 +70,23 @@ export const DISHES = [
 
 export const DISH_BY_ID = Object.fromEntries(DISHES.map((dish) => [dish.id, dish]));
 
+// Who eats at a kaki lima stall after midnight: one persona per ticket,
+// drawn at random when the order lands. A persona nudges the order a little —
+// the ojol driver is in a hurry but tips big, the student is patient but
+// broke — so two identical dishes are never quite the same ticket.
+export const PERSONAS = [
+  { id: 'ojol', name: 'DRIVER OJOL', trait: 'big tipper', tipMult: 1.3, patienceMult: 0.85 },
+  { id: 'satpam', name: 'SATPAM SHIFT MALAM', trait: 'patient', tipMult: 1.0, patienceMult: 1.15 },
+  { id: 'mahasiswa', name: 'MAHASISWA BEGADANG', trait: 'patient', tipMult: 0.8, patienceMult: 1.2 },
+  { id: 'pedagang', name: 'PEDAGANG SEBELAH', trait: 'fellow keeper', tipMult: 1.0, patienceMult: 1.0 },
+  { id: 'parkir', name: 'TUKANG PARKIR', trait: 'easygoing', tipMult: 0.9, patienceMult: 1.1 },
+  { id: 'warkop', name: 'IBU WARUNG KOPI', trait: 'generous', tipMult: 1.1, patienceMult: 1.0 },
+  { id: 'band', name: 'ANAK BAND LATIHAN', trait: 'post-rehearsal', tipMult: 0.9, patienceMult: 1.05 },
+  { id: 'kurir', name: 'KURIR TENGAH MALAM', trait: 'top tipper', tipMult: 1.25, patienceMult: 0.8 },
+  { id: 'apotek', name: 'PENJAGA APOTEK', trait: 'calm shift', tipMult: 1.0, patienceMult: 1.1 },
+  { id: 'angkot', name: 'SOPIR ANGKOT', trait: 'good tip', tipMult: 1.15, patienceMult: 0.9 },
+];
+
 export const FLAVOR = {
   tagline: 'Nyalakan kompor, layani malam — the street eats, you cook.',
   titleLine: "The carts roll out at dusk and the wok's already hot.",

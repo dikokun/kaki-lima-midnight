@@ -6,7 +6,14 @@
 // time; tips come from patience left; streaks build a combo multiplier.
 
 import { COOK, DAY, SCORE } from './config.js';
-import { DISHES } from './data.js';
+import { DISHES, PERSONAS } from './data.js';
+
+// The night's earnings target: Night 1 asks 120 coins (a decent cook reaches
+// it from the Night-1 menu alone), then +40 a night as the menu and the rush
+// grow. The summary grades the night on served ratio AND this target.
+export function targetFor(day) {
+  return 80 + 40 * day;
+}
 
 export const EVENT_SERVE = 1;
 export const EVENT_EXPIRE = 2;
@@ -37,6 +44,8 @@ export function createWorld(random) {
     messageTimer: 0,
     rushAnnounced: false,
     lastServe: null,
+    ticketSeq: 0,
+    targetCoins: targetFor(1),
   };
 
   function dishesForToday() {
@@ -57,9 +66,13 @@ export function createWorld(random) {
     const dish = forcedDishId
       ? pool.find((entry) => entry.id === forcedDishId) || pool[0]
       : pool[Math.floor(random() * pool.length)];
-    const patience = patienceFor() * (0.9 + random() * 0.25);
+    const persona = PERSONAS[Math.floor(random() * PERSONAS.length)];
+    const patience = patienceFor() * persona.patienceMult * (0.9 + random() * 0.25);
+    state.ticketSeq += 1;
     const order = {
       id: nextOrderId,
+      ticketNo: state.ticketSeq,
+      persona,
       dish,
       stepIndex: 0,
       qualities: [],
@@ -225,7 +238,7 @@ export function createWorld(random) {
     if (!order || !order.ready) return { ok: false, reason: 'not-ready' };
     const quality = averageQuality(order);
     const patienceRatio = Math.max(0, order.patience / order.patienceMax);
-    const tip = Math.round(order.dish.price * SCORE.tipFraction * patienceRatio * quality);
+    const tip = Math.round(order.dish.price * SCORE.tipFraction * patienceRatio * quality * order.persona.tipMult);
     const comboBonus = state.combo >= 2 ? Math.min(10, state.combo * SCORE.comboStepBonus - 2) : 0;
     const earned = order.dish.price + tip + comboBonus;
     state.coins += earned;
@@ -321,9 +334,10 @@ export function createWorld(random) {
   function stars() {
     if (state.served === 0) return 0;
     const ratio = state.served / Math.max(1, state.served + state.missed);
-    if (ratio >= 0.85 && state.dayCoins >= 120) return 3;
-    if (ratio >= 0.65 && state.dayCoins >= 70) return 2;
-    if (ratio >= 0.4) return 1;
+    const metTarget = state.dayCoins >= state.targetCoins;
+    if (ratio >= 0.8 && metTarget) return 3;
+    if (ratio >= 0.55 && state.dayCoins >= state.targetCoins * 0.7) return 2;
+    if (ratio >= 0.35 || metTarget) return 1;
     return 0;
   }
 
@@ -341,6 +355,8 @@ export function createWorld(random) {
     state.combo = 0;
     state.rushAnnounced = false;
     state.lastServe = null;
+    state.ticketSeq = 0;
+    state.targetCoins = targetFor(state.day);
   }
 
   function resetAll() {
@@ -351,6 +367,8 @@ export function createWorld(random) {
     state.bestCombo = 0;
     nextDay();
     state.day = 1;
+    state.targetCoins = targetFor(1);
+    state.ticketSeq = 0;
   }
 
   return {
